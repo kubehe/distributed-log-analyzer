@@ -1,0 +1,4 @@
+rootProject.name = 'distributed-log-analyzer'
+
+include 'master'
+include 'slave'
