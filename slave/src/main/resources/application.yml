@@ -5,5 +5,8 @@ spring:
     port: 5672
     username: log
     password: log
+    listener:
+      simple:
+        acknowledge-mode: manual
 server:
   port: 8081

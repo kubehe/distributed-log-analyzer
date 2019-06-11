@@ -16,3 +16,21 @@ services:
       - 15672
       - 5672
     tty: true
+
+  master:
+    build:
+      context: ./master
+    ports:
+      - 80:8080
+    expose:
+      - 80
+    environment:
+      - server.port=8080
+      - spring.rabbitmq.host=rabbit
+
+  slave:
+    build:
+      context: ./slave
+    environment:
+      - server.port=8080
+      - spring.rabbitmq.host=rabbit
