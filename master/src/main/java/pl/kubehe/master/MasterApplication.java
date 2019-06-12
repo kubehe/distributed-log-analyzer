@@ -5,6 +5,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Delivery;
 import io.vavr.Function1;
 import io.vavr.Function2;
+import io.vavr.collection.Stream;
 import io.vavr.control.Try;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,16 +20,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.rabbitmq.*;
 
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Optional.ofNullable;
 
@@ -72,6 +71,7 @@ class QueueConfiguration {
   Receiver receiver(Mono<Connection> connectionMono) {
     return RabbitFlux.createReceiver(new ReceiverOptions().connectionMono(connectionMono));
   }
+
   @Bean
   Flux<Delivery> deliveryFluxBean(Receiver receiver) {
     return receiver.consumeNoAck(AGGREGATION_QUEUE);
@@ -102,12 +102,37 @@ class ApiController {
   }
 
   @GetMapping(value = "/result", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public Flux<AggregatedLogs> getResult() {
+  public Flux<AggregatedLogs> getResult(@RequestParam("simple") Boolean simple) {
+
+    // it's a hugging joke until i discover how to memoize last element in flux so i can combine incoming one with the prev one
+    final AggregatedLogs al = AggregatedLogs.builder().build();
+
     return deliveryFlux.map(delivery -> new String(delivery.getBody()))
 
       .map(msg -> Try.of(() -> objectMapper.readValue(msg, AggregatedLogs.class)).get())
-      .buffer(2, 1)
-      .map(list -> Mapper.joinAggregatedLogs.apply(list.get(0), list.get(1)));
+      .map(msg -> {
+        var joinedVal = Mapper.joinAggregatedLogs.apply(msg, al);
+        al.setDate(joinedVal.getDate());
+        al.setEndpoint(joinedVal.getEndpoint());
+        al.setIp(joinedVal.getIp());
+        al.setMethod(joinedVal.getMethod());
+        al.setOrigin(joinedVal.getOrigin());
+        al.setPort(joinedVal.getPort());
+        al.setProtocol(joinedVal.getProtocol());
+        al.setStatus(joinedVal.getStatus());
+        al.setUserAgent(joinedVal.getUserAgent());
+        return joinedVal;
+      }).map(msg -> {
+          log.info("response");
+          return simple ?
+            AggregatedLogs.builder()
+              .method(msg.getMethod())
+              .protocol(msg.getProtocol())
+              .status(msg.getStatus())
+              .build()
+            : msg;
+        }
+      );
   }
 
 }
@@ -115,7 +140,7 @@ class ApiController {
 class Mapper {
   static Function2<AggregatedLogs, AggregatedLogs, AggregatedLogs> joinAggregatedLogs = (a1, a2) -> {
     if (a1 == null && a2 == null) throw new IllegalArgumentException("at least first arg cannot be null!");
-    if (a2 == null) return a1;
+    if (a2 == null || a2.getMethod() == null) return a1;
     Function1<Function1<AggregatedLogs, Map<String, Long>>, Map<String, Long>> joinField = (mapper) -> {
       var joinedMap = mapper.apply(a1).entrySet().stream()
         .map(entry -> {
@@ -138,6 +163,7 @@ class Mapper {
       .userAgent(joinField.apply(AggregatedLogs::getUserAgent))
       .build();
   };
+
 }
 
 @Builder
