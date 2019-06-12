@@ -101,6 +101,7 @@ class ApiController {
       .doOnSuccess(v -> log.info("finished processing file")).doOnError(throwable -> log.error(throwable.getMessage()));
   }
 
+  @CrossOrigin(value = {"http://localhost:3000"})
   @GetMapping(value = "/result", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public Flux<AggregatedLogs> getResult(@RequestParam("simple") Boolean simple) {
 
