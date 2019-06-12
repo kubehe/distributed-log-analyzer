@@ -59,3 +59,8 @@ Przetestowanie wydajności systemu polega na wykonaniu serii działań:
 - następnie rozpocznie się analizowanie danych - aby podejrzeć działanie można wejść na panel zarządzania rabbitMQ, http://localhost:15672 login: `log`, hasło: `log`
 
 ## Wnioski
+
+System działa bardzo szybko i pozwala na bardzo wygodne skalowanie dzięki dockerowi.
+Wykorzystaliśmy Spring Webflux i bibliotekę Reactor które znacząco przyspieszają działanie i optymalność - zamiast tradycyjnego podejścia 1 wątek - 1 request, kod jest wykonywany asynchronicznie i reaktywnie.
+Analizowanie danych jest bardzo wygodne dzięki kolejce RabbitMQ, wyraźnie widać zurzycie zasobów i czas przetwarzania danych.
+
