@@ -20,6 +20,8 @@ services:
   master:
     build:
       context: ./master
+    depends_on:
+      - rabbit
     ports:
       - 80:8080
     expose:
@@ -31,6 +33,8 @@ services:
   slave:
     build:
       context: ./slave
+    depends_on:
+      - rabbit
     environment:
       - server.port=8080
       - spring.rabbitmq.host=rabbit
