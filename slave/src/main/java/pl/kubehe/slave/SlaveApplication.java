@@ -59,7 +59,7 @@ class QueueConfiguration {
 
   @Bean
   Queue aggregationQueue() {
-    return new Queue(CALCULATION_QUEUE);
+    return new Queue(AGGREGATION_QUEUE);
   }
   @Bean
   Mono<Connection> connectionMono(ConnectionFactory connectionFactory) {
