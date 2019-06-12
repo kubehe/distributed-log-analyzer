@@ -22,6 +22,7 @@ gradle-app.setting
 # Log file
 *.log
 
+!**/test-logs/*
 # BlueJ files
 *.ctxt
 
